@@ -32,6 +32,16 @@ function App() {
   useEffect(() => { refreshData() }, [])
 
   useEffect(() => {
+    if (pageData?.logo) {
+      const link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null
+      if (link) {
+        link.href = pageData.logo
+        link.type = 'image/png'
+      }
+    }
+  }, [pageData?.logo])
+
+  useEffect(() => {
     const handler = () => {
       if (currentPage === 'service') {
         setCurrentPage('home')
