@@ -43,6 +43,7 @@ interface Testimonial {
   id: number
   name: string
   text: string
+  photo?: string
 }
 
 interface PortfolioItem {
@@ -74,6 +75,7 @@ interface PageData {
   faq: FAQItem[]
   testimonials: Testimonial[]
   portfolio: PortfolioItem[]
+  logo?: string
 }
 
 const DEFAULT_PAGE_DATA: PageData = {
