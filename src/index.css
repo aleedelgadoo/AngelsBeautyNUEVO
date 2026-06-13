@@ -1,0 +1,32 @@
+:root {
+  --cream: #FAFAF7;
+  --blush: #F5EDE8;
+  --mist: #EDE6DF;
+  --rose-gold: #C9967A;
+  --rose-gold-dark: #A87C62;
+  --mauve: #9B7585;
+  --charcoal: #262626;
+  --warm-mid: #7A6048;
+  --text-muted: #888888;
+  --border: #E8DED6;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Raleway', 'Segoe UI', sans-serif;
+  color: var(--charcoal);
+  background-color: #ffffff;
+  line-height: 1.75;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}

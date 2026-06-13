@@ -1,0 +1,277 @@
+.course-detail-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+.course-detail-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+.back-button {
+  background-color: transparent;
+  color: #888;
+  border: none;
+  padding: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-bottom: 3rem;
+  transition: color 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.back-button:hover {
+  color: #C9967A;
+  transform: none;
+}
+
+.course-detail-hero {
+  margin: 0 auto 3.5rem auto;
+  text-align: center;
+}
+
+.course-detail-image-real {
+  max-height: 65vh;
+  max-width: 82%;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 0;
+  box-shadow: 16px 20px 0 #F5EDE8;
+}
+
+.course-detail-image-placeholder {
+  width: 100%;
+  height: 170px;
+  border-radius: 0;
+}
+
+.course-placeholder-1 { background: linear-gradient(160deg, #A8C4D8 0%, #7A9CB8 100%); }
+.course-placeholder-2 { background: linear-gradient(160deg, #3A3A3A 0%, #262626 100%); }
+.course-placeholder-3 { background: linear-gradient(160deg, #D4C0A0 0%, #B09868 100%); }
+.course-placeholder-4 { background: linear-gradient(160deg, #B09070 0%, #886848 100%); }
+
+.course-detail-content {
+  padding: 0;
+}
+
+.course-detail-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 3rem;
+  font-weight: 300;
+  color: #262626;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.course-detail-meta {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.duration {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #C9967A;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.course-detail-description {
+  font-size: 0.95rem;
+  color: #666;
+  line-height: 1.9;
+  margin-bottom: 3rem;
+  text-align: justify;
+  max-width: 680px;
+}
+
+.objectives-section {
+  margin-bottom: 3.5rem;
+}
+
+.objectives-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  color: #262626;
+  margin: 0 0 2rem 0;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.objectives-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 32px;
+  height: 1px;
+  background-color: #C9967A;
+}
+
+.objectives-list {
+  list-style: none;
+  padding: 0;
+}
+
+.objective-item {
+  background: linear-gradient(135deg, #FAFAF7 0%, #F7F1EC 100%);
+  padding: 1.25rem 1.75rem;
+  margin-bottom: 1rem;
+  border-left: 2px solid #C9967A;
+  color: #666;
+  line-height: 1.75;
+  font-size: 0.92rem;
+  box-shadow: 0 2px 12px rgba(74, 55, 40, 0.06);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.objective-item:hover {
+  box-shadow: 0 6px 24px rgba(74, 55, 40, 0.12);
+  transform: translateX(4px);
+}
+
+.objective-item::before {
+  content: '— ';
+  color: #C9967A;
+  font-weight: 600;
+}
+
+.portfolio-section {
+  margin-top: 4rem;
+  padding-top: 3rem;
+  border-top: 1px solid #EDE6DF;
+}
+
+.portfolio-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  color: #262626;
+  margin: 0 0 2.5rem 0;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.portfolio-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 32px;
+  height: 1px;
+  background-color: #C9967A;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.portfolio-image-item {
+  width: 100%;
+  min-height: 300px;
+  background: linear-gradient(160deg, #A8C4D8 0%, #7A9CB8 100%) center/cover no-repeat;
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(50, 35, 25, 0.14);
+  transition: box-shadow 0.35s ease, transform 0.35s ease;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+.portfolio-image-item:hover {
+  box-shadow: 0 12px 36px rgba(50, 35, 25, 0.22);
+  transform: translateY(-3px);
+}
+
+.portfolio-image-item::after {
+  content: 'Ver imagen';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1rem;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(
+    to top,
+    rgba(20, 12, 8, 0.7) 0%,
+    rgba(20, 12, 8, 0.15) 45%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.portfolio-image-item:hover::after {
+  opacity: 1;
+}
+
+.portfolio-image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .course-detail-container {
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  .course-detail-hero {
+    margin-bottom: 2.5rem;
+  }
+
+  .course-detail-image-real {
+    max-width: 90%;
+    box-shadow: 8px 10px 0 #F5EDE8;
+  }
+
+  .course-detail-title {
+    font-size: 2rem;
+    letter-spacing: 2px;
+  }
+
+  .portfolio-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-detail-title {
+    font-size: 1.7rem;
+  }
+
+  .portfolio-grid {
+    grid-template-columns: 1fr;
+  }
+}

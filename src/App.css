@@ -1,0 +1,79 @@
+.app {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+section {
+  width: 100%;
+}
+
+.announcement-strip {
+  background: linear-gradient(90deg, #0C0A08 0%, #1E1814 40%, #1E1814 60%, #0C0A08 100%);
+  padding: 0.6rem 2rem;
+  text-align: center;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.announcement-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 20%, rgba(201, 150, 122, 0.06) 50%, transparent 80%);
+  pointer-events: none;
+}
+
+.announcement-strip span {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.section-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  text-align: center;
+  color: #262626;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+  line-height: 1.1;
+  position: relative;
+  padding-bottom: 1.2rem;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9967A 30%, #C9967A 70%, transparent);
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 1.6rem;
+    letter-spacing: 4px;
+    margin-bottom: 2rem;
+  }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+button {
+  font-family: 'Raleway', inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+}
