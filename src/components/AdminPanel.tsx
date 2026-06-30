@@ -614,12 +614,12 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   <h3>Portfolio del Servicio</h3>
                   <div className="portfolio-upload">
                     {pageData.services[editingServiceIdx].portfolioImages.map((img: any, pIdx: number) => (
-                      <div key={img.id} className="portfolio-item" style={{ aspectRatio: '4 / 3' }}>
+                      <div key={img.id} className="portfolio-item">
                         {img.image && <img src={img.image} alt={`Portfolio ${pIdx}`} style={{ objectPosition: img.position || '50% 50%' }} />}
                         <button onClick={() => setPositionModal({
                           src: img.image,
                           position: img.position,
-                          aspectRatio: '4 / 3',
+                          aspectRatio: '2 / 3',
                           onChange: (pos) => {
                             setPageData((prev: any) => {
                               const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx
@@ -714,12 +714,12 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   <h3>Portfolio de Trabajos de Alumnos</h3>
                   <div className="portfolio-upload">
                     {pageData.courses[editingCourseIdx].portfolioImages.map((img: any, pIdx: number) => (
-                      <div key={img.id} className="portfolio-item" style={{ aspectRatio: '4 / 3' }}>
+                      <div key={img.id} className="portfolio-item">
                         {img.image && <img src={img.image} alt={`Portfolio ${pIdx}`} style={{ objectPosition: img.position || '50% 50%' }} />}
                         <button onClick={() => setPositionModal({
                           src: img.image,
                           position: img.position,
-                          aspectRatio: '4 / 3',
+                          aspectRatio: '2 / 3',
                           onChange: (pos) => {
                             setPageData((prev: any) => {
                               const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx

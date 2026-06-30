@@ -65,6 +65,39 @@ function App() {
     preload('hero', pageData?.hero?.image)
   }, [pageData?.logo, pageData?.hero?.image])
 
+  // Service/course cover photos and the general portfolio are already
+  // rendered (and loading) on the main page, but each service/course's own
+  // photo gallery only shows up once the visitor opens that detail page.
+  // Once the main page has had a chance to load, warm the cache for those
+  // galleries in the background at low priority so opening a service or
+  // course feels instant instead of waiting on a cold image fetch.
+  useEffect(() => {
+    if (!pageData) return
+    const urls: string[] = []
+    ;(pageData.services || []).forEach((s: any) => {
+      ;(s.portfolioImages || []).forEach((p: any) => p.image && urls.push(p.image))
+    })
+    ;(pageData.courses || []).forEach((c: any) => {
+      ;(c.portfolioImages || []).forEach((p: any) => p.image && urls.push(p.image))
+    })
+    if (urls.length === 0) return
+
+    const prefetch = () => {
+      urls.forEach((url) => {
+        const img = new Image()
+        ;(img as any).fetchPriority = 'low'
+        img.src = url
+      })
+    }
+
+    const ric = (window as any).requestIdleCallback
+    const handle = ric ? ric(prefetch) : window.setTimeout(prefetch, 1500)
+    return () => {
+      if (ric) (window as any).cancelIdleCallback?.(handle)
+      else window.clearTimeout(handle)
+    }
+  }, [pageData])
+
   useEffect(() => {
     const handler = () => {
       if (currentPage === 'service') {
