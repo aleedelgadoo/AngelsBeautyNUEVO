@@ -19,6 +19,7 @@ interface ServiceData {
   duration: string
   description: string
   image: string
+  imagePosition?: string
   packages: Package[]
   portfolioImages: Array<{ id: number; image: string }>
 }
@@ -29,6 +30,7 @@ interface CourseData {
   duration: string
   description: string
   image: string
+  imagePosition?: string
   objectives: string[]
   portfolioImages: Array<{ id: number; image: string }>
 }
@@ -49,6 +51,7 @@ interface Testimonial {
 interface PortfolioItem {
   id: number
   image: string
+  position?: string
 }
 
 interface PageData {
@@ -168,6 +171,29 @@ const DEFAULT_PAGE_DATA: PageData = {
   portfolio: [],
 }
 
+const ImagePositionPicker = ({ src, position, onChange }: { src: string; position?: string; onChange: (pos: string) => void }) => {
+  const boxRef = useRef<HTMLDivElement>(null)
+  const current = position || '50% 50%'
+  const [x, y] = current.split(' ')
+
+  const handlePick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = boxRef.current!.getBoundingClientRect()
+    const px = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)))
+    const py = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)))
+    onChange(`${px}% ${py}%`)
+  }
+
+  return (
+    <div className="position-picker">
+      <div ref={boxRef} className="position-picker-box" onClick={handlePick}>
+        <img src={src} alt="" style={{ objectPosition: current }} />
+        <div className="position-picker-marker" style={{ left: x, top: y }} />
+      </div>
+      <p className="position-picker-hint">Hacé clic en la imagen para ajustar el encuadre dentro del recuadro</p>
+    </div>
+  )
+}
+
 const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [username, setUsername] = useState('')
@@ -176,6 +202,9 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [pageData, setPageData] = useState<PageData>(DEFAULT_PAGE_DATA)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
   const initialized = useRef(false)
 
@@ -186,19 +215,29 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     })
   }, [])
 
+  const persistNow = (data: PageData) => {
+    setSaveStatus('saving')
+    return savePageData(data).then(() => {
+      setHasChanges(false)
+      setSaveStatus('saved')
+      setSaveError(null)
+      setLastSavedAt(new Date())
+      onDataSaved()
+    }).catch((err: any) => {
+      console.error('Save error:', err)
+      setSaveStatus('error')
+      setSaveError(err?.message || 'No se pudo conectar con el servidor')
+    })
+  }
+
   // auto-save 800ms after any change (debounced)
   useEffect(() => {
-    if (!initialized.current || !isAuthenticated) return
+    if (!initialized.current || !isAuthenticated || !hasChanges) return
     const timer = setTimeout(() => {
-      savePageData(pageData).then(() => {
-        setHasChanges(false)
-        onDataSaved()
-      }).catch((err: any) => {
-        console.error('Auto-save error:', err)
-      })
+      persistNow(pageData)
     }, 800)
     return () => clearTimeout(timer)
-  }, [pageData])
+  }, [pageData, hasChanges])
 
   // warn before closing/refreshing with unsaved changes
   useEffect(() => {
@@ -212,11 +251,24 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     return () => window.removeEventListener('beforeunload', handler)
   }, [hasChanges])
 
+  // force an immediate save when the tab/app is backgrounded so changes
+  // aren't lost if the user switches apps before the debounce fires
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'hidden' && hasChanges && saveStatus !== 'saving') {
+        persistNow(pageData)
+      }
+    }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }, [hasChanges, pageData, saveStatus])
+
   const [editingServiceIdx, setEditingServiceIdx] = useState<number | null>(null)
   const [editingCourseIdx, setEditingCourseIdx] = useState<number | null>(null)
   const [editingPackageIdx, setEditingPackageIdx] = useState<number | null>(null)
   const [editingFaqIdx, setEditingFaqIdx] = useState<number | null>(null)
   const [editingTestimonialIdx, setEditingTestimonialIdx] = useState<number | null>(null)
+  const [adjustingPortfolioIdx, setAdjustingPortfolioIdx] = useState<number | null>(null)
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -233,8 +285,10 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   const markAsChanged = () => setHasChanges(true)
 
   const [uploading, setUploading] = useState(false)
+  const [optimizing, setOptimizing] = useState(false)
+  const [optimizeProgress, setOptimizeProgress] = useState<{ done: number; total: number } | null>(null)
 
-  const resizeToBlob = (file: File, maxWidth = 1200): Promise<Blob> => {
+  const resizeToBlob = (file: Blob, maxWidth = 1200): Promise<Blob> => {
     const isPng = file.type === 'image/png'
     const mimeType = isPng ? 'image/png' : 'image/jpeg'
     return new Promise((resolve) => {
@@ -279,14 +333,77 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     })
   }
 
-  const handleSave = async () => {
-    try {
-      await savePageData(pageData)
-      setHasChanges(false)
-      onDataSaved()
-      alert('Cambios guardados exitosamente')
-    } catch (err: any) {
-      alert('Error al guardar: ' + (err?.message || JSON.stringify(err)))
+  const handleSave = () => {
+    persistNow(pageData)
+  }
+
+  const optimizeExistingImages = async () => {
+    if (optimizing) return
+    const ok = confirm('Esto va a re-comprimir todas las fotos ya subidas para que la página cargue más rápido. Puede tardar algunos minutos según la cantidad de fotos. ¿Continuar?')
+    if (!ok) return
+
+    setOptimizing(true)
+    const working: PageData = JSON.parse(JSON.stringify(pageData))
+    const jobs: Array<{ url: string; maxWidth: number; apply: (newUrl: string) => void }> = []
+
+    if (working.hero.image) jobs.push({ url: working.hero.image, maxWidth: 1200, apply: (u) => { working.hero.image = u } })
+    if (working.about.image) jobs.push({ url: working.about.image, maxWidth: 1200, apply: (u) => { working.about.image = u } })
+    if (working.logo) jobs.push({ url: working.logo, maxWidth: 500, apply: (u) => { working.logo = u } })
+    working.services.forEach((s) => {
+      if (s.image) jobs.push({ url: s.image, maxWidth: 1200, apply: (u) => { s.image = u } })
+      s.portfolioImages.forEach((p) => {
+        if (p.image) jobs.push({ url: p.image, maxWidth: 1200, apply: (u) => { p.image = u } })
+      })
+    })
+    working.courses.forEach((c) => {
+      if (c.image) jobs.push({ url: c.image, maxWidth: 1200, apply: (u) => { c.image = u } })
+      c.portfolioImages.forEach((p) => {
+        if (p.image) jobs.push({ url: p.image, maxWidth: 1200, apply: (u) => { p.image = u } })
+      })
+    })
+    working.portfolio.forEach((p) => {
+      if (p.image) jobs.push({ url: p.image, maxWidth: 1200, apply: (u) => { p.image = u } })
+    })
+    working.testimonials.forEach((t) => {
+      if (t.photo) jobs.push({ url: t.photo, maxWidth: 500, apply: (u) => { t.photo = u } })
+    })
+
+    if (jobs.length === 0) {
+      setOptimizing(false)
+      alert('No hay fotos para optimizar.')
+      return
+    }
+
+    setOptimizeProgress({ done: 0, total: jobs.length })
+    let failures = 0
+
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i]
+      try {
+        const res = await fetch(job.url)
+        if (!res.ok) throw new Error('No se pudo descargar la imagen')
+        const blob = await res.blob()
+        const resized = await resizeToBlob(blob, job.maxWidth)
+        const ext = blob.type === 'image/png' ? 'png' : 'jpg'
+        const fileName = `opt_${Date.now()}_${i}.${ext}`
+        const newUrl = await uploadImage(resized, fileName)
+        job.apply(newUrl)
+      } catch (err) {
+        failures++
+        console.error('No se pudo optimizar', job.url, err)
+      }
+      setOptimizeProgress({ done: i + 1, total: jobs.length })
+    }
+
+    setPageData(working)
+    markAsChanged()
+    setOptimizing(false)
+    setOptimizeProgress(null)
+
+    if (failures > 0) {
+      alert(`Optimización terminada. ${jobs.length - failures} de ${jobs.length} fotos se optimizaron correctamente. ${failures} no se pudieron procesar (podés intentar de nuevo).`)
+    } else {
+      alert(`¡Listo! Se optimizaron ${jobs.length} fotos. Los cambios se están guardando.`)
     }
   }
 
@@ -328,13 +445,38 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     )
   }
 
+  const statusInfo = saveStatus === 'saving'
+    ? { icon: '⏳', text: 'Guardando cambios...', cls: 'saving' }
+    : saveStatus === 'error'
+      ? { icon: '⚠️', text: `No se pudo guardar: ${saveError}`, cls: 'error' }
+      : hasChanges
+        ? { icon: '●', text: 'Cambios sin guardar — se guardan automáticamente', cls: 'pending' }
+        : lastSavedAt
+          ? { icon: '✓', text: `Todo guardado · ${lastSavedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`, cls: 'saved' }
+          : { icon: '✓', text: 'Sin cambios pendientes', cls: 'saved' }
+
   return (
     <div className="admin-panel">
       <div className="admin-header">
         <h1>Panel de Control - Angels Beauty</h1>
-        <button onClick={onLogout} className="logout-button">
-          Cerrar Sesión
-        </button>
+        <div className="admin-header-actions">
+          <button onClick={optimizeExistingImages} className="optimize-button" disabled={optimizing}>
+            {optimizing
+              ? `Optimizando ${optimizeProgress ? `${optimizeProgress.done}/${optimizeProgress.total}` : '...'}`
+              : '🚀 Optimizar fotos existentes'}
+          </button>
+          <button onClick={onLogout} className="logout-button">
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      <div className={`save-status-bar save-status-${statusInfo.cls}`}>
+        <span className="save-status-icon">{statusInfo.icon}</span>
+        <span>{statusInfo.text}</span>
+        {statusInfo.cls === 'error' && (
+          <button onClick={handleSave} className="retry-save-button">Reintentar ahora</button>
+        )}
       </div>
 
       <div className="admin-content">
@@ -487,9 +629,15 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                     <textarea value={pageData.services[editingServiceIdx].description} onChange={(e) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, description: e.target.value } : sv); return { ...prev, services: s } }); markAsChanged() }} rows={3} />
                   </div>
                   <div className="form-group">
-                    <label>Imagen del Servicio</label>
+                    <label>Imagen del Servicio (portada)</label>
                     <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, image } : sv); return { ...prev, services: s } }) })} />
-                    {pageData.services[editingServiceIdx].image && <img src={pageData.services[editingServiceIdx].image} alt="Service" className="preview-image" />}
+                    {pageData.services[editingServiceIdx].image && (
+                      <ImagePositionPicker
+                        src={pageData.services[editingServiceIdx].image}
+                        position={pageData.services[editingServiceIdx].imagePosition}
+                        onChange={(pos) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, imagePosition: pos } : sv); return { ...prev, services: s } }); markAsChanged() }}
+                      />
+                    )}
                   </div>
 
                   <h3>Paquetes</h3>
@@ -605,9 +753,15 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                     <textarea value={pageData.courses[editingCourseIdx].description} onChange={(e) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, description: e.target.value } : cv); return { ...prev, courses: c } }); markAsChanged() }} rows={3} />
                   </div>
                   <div className="form-group">
-                    <label>Imagen del Curso</label>
+                    <label>Imagen del Curso (portada)</label>
                     <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, image } : cv); return { ...prev, courses: c } }) })} />
-                    {pageData.courses[editingCourseIdx].image && <img src={pageData.courses[editingCourseIdx].image} alt="Course" className="preview-image" />}
+                    {pageData.courses[editingCourseIdx].image && (
+                      <ImagePositionPicker
+                        src={pageData.courses[editingCourseIdx].image}
+                        position={pageData.courses[editingCourseIdx].imagePosition}
+                        onChange={(pos) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, imagePosition: pos } : cv); return { ...prev, courses: c } }); markAsChanged() }}
+                      />
+                    )}
                   </div>
 
                   <h3>Portfolio de Trabajos de Alumnos</h3>
@@ -642,7 +796,8 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
               <div className="portfolio-upload">
                 {pageData.portfolio.map((item: any, idx: number) => (
                   <div key={item.id} className="portfolio-item">
-                    {item.image && <img src={item.image} alt={`Portfolio ${idx}`} />}
+                    {item.image && <img src={item.image} alt={`Portfolio ${idx}`} style={{ objectPosition: item.position || '50% 50%' }} />}
+                    <button onClick={() => setAdjustingPortfolioIdx(idx)} className="portfolio-adjust" title="Ajustar encuadre">🎯</button>
                     <button onClick={() => {
                       setPageData((prev: any) => ({ ...prev, portfolio: prev.portfolio.filter((_: any, i: number) => i !== idx) }))
                       markAsChanged()
@@ -650,6 +805,16 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                 ))}
               </div>
+              {adjustingPortfolioIdx !== null && pageData.portfolio[adjustingPortfolioIdx] && (
+                <div className="item-editor">
+                  <button onClick={() => setAdjustingPortfolioIdx(null)} className="back-button">← Cerrar ajuste de encuadre</button>
+                  <ImagePositionPicker
+                    src={pageData.portfolio[adjustingPortfolioIdx].image}
+                    position={pageData.portfolio[adjustingPortfolioIdx].position}
+                    onChange={(pos) => { setPageData((prev: any) => { const p = prev.portfolio.map((pv: any, i: number) => i === adjustingPortfolioIdx ? { ...pv, position: pos } : pv); return { ...prev, portfolio: p } }); markAsChanged() }}
+                  />
+                </div>
+              )}
               <label className="upload-label">
                 + Agregar foto al portfolio
                 <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => ({ ...prev, portfolio: [...prev.portfolio, { id: Date.now(), image }] })) })} />
@@ -768,9 +933,9 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
       {uploading && (
         <div className="uploading-indicator">Subiendo imagen...</div>
       )}
-      {hasChanges && !uploading && (
+      {hasChanges && !uploading && saveStatus !== 'saving' && (
         <button className="save-button-floating" onClick={handleSave}>
-          💾 Guardar Cambios
+          💾 Guardar Ahora
         </button>
       )}
     </div>

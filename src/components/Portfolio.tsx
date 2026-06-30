@@ -8,7 +8,7 @@ interface PortfolioProps {
 
 const Portfolio = ({ pageData }: PortfolioProps) => {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
-  const items: Array<{ id: number; image: string }> = pageData?.portfolio ?? []
+  const items: Array<{ id: number; image: string; position?: string }> = pageData?.portfolio ?? []
 
   if (items.length === 0) return null
 
@@ -19,7 +19,7 @@ const Portfolio = ({ pageData }: PortfolioProps) => {
         <div className="portfolio-grid">
           {items.map((item) => (
             <div key={item.id} className="portfolio-item" onClick={() => setLightboxSrc(item.image)}>
-              <div className="portfolio-image" style={{ backgroundImage: `url(${item.image})` }}></div>
+              <div className="portfolio-image" style={{ backgroundImage: `url(${item.image})`, backgroundPosition: item.position || '50% 50%' }}></div>
             </div>
           ))}
         </div>
