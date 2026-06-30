@@ -65,7 +65,7 @@ const ServiceDetail = ({ serviceId, onClose, pageData }: ServiceDetailProps) => 
                   <div
                     key={img.id}
                     className="portfolio-image-item"
-                    style={img.image ? { backgroundImage: `url(${img.image})`, backgroundSize: 'cover', backgroundPosition: 'center', cursor: 'pointer' } : {}}
+                    style={img.image ? { backgroundImage: `url(${img.image})`, backgroundSize: 'cover', backgroundPosition: img.position || '50% 50%', cursor: 'pointer' } : {}}
                     onClick={() => img.image && setLightboxSrc(img.image)}
                   ></div>
                 ))}

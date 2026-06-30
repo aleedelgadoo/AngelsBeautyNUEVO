@@ -8,7 +8,7 @@ export const supabase = createClient(url, key)
 export async function uploadImage(blob: Blob, fileName: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from('fotos')
-    .upload(fileName, blob, { upsert: true, contentType: blob.type || 'image/jpeg' })
+    .upload(fileName, blob, { upsert: true, contentType: blob.type || 'image/jpeg', cacheControl: '31536000' })
 
   if (error) throw error
 

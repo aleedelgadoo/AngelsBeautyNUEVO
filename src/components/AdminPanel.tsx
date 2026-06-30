@@ -21,7 +21,7 @@ interface ServiceData {
   image: string
   imagePosition?: string
   packages: Package[]
-  portfolioImages: Array<{ id: number; image: string }>
+  portfolioImages: Array<{ id: number; image: string; position?: string }>
 }
 
 interface CourseData {
@@ -32,7 +32,7 @@ interface CourseData {
   image: string
   imagePosition?: string
   objectives: string[]
-  portfolioImages: Array<{ id: number; image: string }>
+  portfolioImages: Array<{ id: number; image: string; position?: string }>
 }
 
 interface FAQItem {
@@ -171,7 +171,7 @@ const DEFAULT_PAGE_DATA: PageData = {
   portfolio: [],
 }
 
-const ImagePositionPicker = ({ src, position, onChange }: { src: string; position?: string; onChange: (pos: string) => void }) => {
+const ImagePositionPicker = ({ src, position, onChange, aspectRatio = '3 / 4' }: { src: string; position?: string; onChange: (pos: string) => void; aspectRatio?: string }) => {
   const boxRef = useRef<HTMLDivElement>(null)
   const current = position || '50% 50%'
   const [x, y] = current.split(' ')
@@ -185,7 +185,7 @@ const ImagePositionPicker = ({ src, position, onChange }: { src: string; positio
 
   return (
     <div className="position-picker">
-      <div ref={boxRef} className="position-picker-box" onClick={handlePick}>
+      <div ref={boxRef} className="position-picker-box" style={{ aspectRatio }} onClick={handlePick}>
         <img src={src} alt="" style={{ objectPosition: current }} />
         <div className="position-picker-marker" style={{ left: x, top: y }} />
       </div>
@@ -269,6 +269,8 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   const [editingFaqIdx, setEditingFaqIdx] = useState<number | null>(null)
   const [editingTestimonialIdx, setEditingTestimonialIdx] = useState<number | null>(null)
   const [adjustingPortfolioIdx, setAdjustingPortfolioIdx] = useState<number | null>(null)
+  const [adjustingServicePortfolioIdx, setAdjustingServicePortfolioIdx] = useState<number | null>(null)
+  const [adjustingCoursePortfolioIdx, setAdjustingCoursePortfolioIdx] = useState<number | null>(null)
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -288,9 +290,11 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   const [optimizing, setOptimizing] = useState(false)
   const [optimizeProgress, setOptimizeProgress] = useState<{ done: number; total: number } | null>(null)
 
-  const resizeToBlob = (file: Blob, maxWidth = 1200): Promise<Blob> => {
-    const isPng = file.type === 'image/png'
-    const mimeType = isPng ? 'image/png' : 'image/jpeg'
+  // WebP compresses ~30% smaller than JPEG at equivalent visual quality and
+  // supports transparency, so it replaces both JPEG and PNG output here.
+  // Browsers that can't encode WebP fall back to PNG automatically via
+  // canvas.toBlob, so we read the real blob.type rather than assuming.
+  const resizeToBlob = (file: Blob, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
     return new Promise((resolve) => {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -305,7 +309,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
           canvas.width = width
           canvas.height = height
           canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-          canvas.toBlob((blob) => resolve(blob!), mimeType, 0.82)
+          canvas.toBlob((blob) => resolve(blob!), 'image/webp', quality)
         }
         img.src = e.target?.result as string
       }
@@ -313,14 +317,15 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     })
   }
 
+  const extensionFor = (blob: Blob) => (blob.type === 'image/webp' ? 'webp' : blob.type === 'image/png' ? 'png' : 'jpg')
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void, maxWidth = 1200) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
     resizeToBlob(file, maxWidth).then(async (blob) => {
       try {
-        const ext = file.type === 'image/png' ? 'png' : 'jpg'
-        const fileName = `${Date.now()}_${file.name.replace(/[^a-z0-9]/gi, '_')}.${ext}`
+        const fileName = `${Date.now()}_${file.name.replace(/[^a-z0-9]/gi, '_')}.${extensionFor(blob)}`
         const url = await uploadImage(blob, fileName)
         callback(url)
         markAsChanged()
@@ -347,25 +352,25 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     const jobs: Array<{ url: string; maxWidth: number; apply: (newUrl: string) => void }> = []
 
     if (working.hero.image) jobs.push({ url: working.hero.image, maxWidth: 1200, apply: (u) => { working.hero.image = u } })
-    if (working.about.image) jobs.push({ url: working.about.image, maxWidth: 1200, apply: (u) => { working.about.image = u } })
+    if (working.about.image) jobs.push({ url: working.about.image, maxWidth: 400, apply: (u) => { working.about.image = u } })
     if (working.logo) jobs.push({ url: working.logo, maxWidth: 500, apply: (u) => { working.logo = u } })
     working.services.forEach((s) => {
-      if (s.image) jobs.push({ url: s.image, maxWidth: 1200, apply: (u) => { s.image = u } })
+      if (s.image) jobs.push({ url: s.image, maxWidth: 700, apply: (u) => { s.image = u } })
       s.portfolioImages.forEach((p) => {
-        if (p.image) jobs.push({ url: p.image, maxWidth: 1200, apply: (u) => { p.image = u } })
+        if (p.image) jobs.push({ url: p.image, maxWidth: 800, apply: (u) => { p.image = u } })
       })
     })
     working.courses.forEach((c) => {
-      if (c.image) jobs.push({ url: c.image, maxWidth: 1200, apply: (u) => { c.image = u } })
+      if (c.image) jobs.push({ url: c.image, maxWidth: 700, apply: (u) => { c.image = u } })
       c.portfolioImages.forEach((p) => {
-        if (p.image) jobs.push({ url: p.image, maxWidth: 1200, apply: (u) => { p.image = u } })
+        if (p.image) jobs.push({ url: p.image, maxWidth: 800, apply: (u) => { p.image = u } })
       })
     })
     working.portfolio.forEach((p) => {
-      if (p.image) jobs.push({ url: p.image, maxWidth: 1200, apply: (u) => { p.image = u } })
+      if (p.image) jobs.push({ url: p.image, maxWidth: 800, apply: (u) => { p.image = u } })
     })
     working.testimonials.forEach((t) => {
-      if (t.photo) jobs.push({ url: t.photo, maxWidth: 500, apply: (u) => { t.photo = u } })
+      if (t.photo) jobs.push({ url: t.photo, maxWidth: 250, apply: (u) => { t.photo = u } })
     })
 
     if (jobs.length === 0) {
@@ -384,8 +389,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
         if (!res.ok) throw new Error('No se pudo descargar la imagen')
         const blob = await res.blob()
         const resized = await resizeToBlob(blob, job.maxWidth)
-        const ext = blob.type === 'image/png' ? 'png' : 'jpg'
-        const fileName = `opt_${Date.now()}_${i}.${ext}`
+        const fileName = `opt_${Date.now()}_${i}.${extensionFor(resized)}`
         const newUrl = await uploadImage(resized, fileName)
         job.apply(newUrl)
       } catch (err) {
@@ -580,7 +584,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
               </div>
               <div className="form-group">
                 <label>Imagen</label>
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev) => ({ ...prev, about: { ...prev.about, image } })) })} />
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev) => ({ ...prev, about: { ...prev.about, image } })) }, 400)} />
                 {pageData.about.image && <img src={pageData.about.image} alt="About" className="preview-image" />}
               </div>
             </div>
@@ -595,7 +599,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                     <div key={service.id} className="item-card">
                       <h3>{service.name}</h3>
                       <div className="item-card-actions">
-                        <button onClick={() => { setEditingServiceIdx(idx); setEditingPackageIdx(null) }} className="edit-button">Editar</button>
+                        <button onClick={() => { setEditingServiceIdx(idx); setEditingPackageIdx(null); setAdjustingServicePortfolioIdx(null) }} className="edit-button">Editar</button>
                         <button onClick={() => {
                           if (confirm(`¿Eliminar "${service.name}"?`)) {
                             setPageData((prev: any) => ({ ...prev, services: prev.services.filter((_: any, i: number) => i !== idx) }))
@@ -615,7 +619,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                 </div>
               ) : (
                 <div className="item-editor">
-                  <button onClick={() => setEditingServiceIdx(null)} className="back-button">← Volver a Servicios</button>
+                  <button onClick={() => { setEditingServiceIdx(null); setAdjustingServicePortfolioIdx(null) }} className="back-button">← Volver a Servicios</button>
                   <div className="form-group">
                     <label>Nombre</label>
                     <input type="text" value={pageData.services[editingServiceIdx].name} onChange={(e) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, name: e.target.value } : sv); return { ...prev, services: s } }); markAsChanged() }} />
@@ -630,7 +634,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <div className="form-group">
                     <label>Imagen del Servicio (portada)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, image } : sv); return { ...prev, services: s } }) })} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, image } : sv); return { ...prev, services: s } }) }, 700)} />
                     {pageData.services[editingServiceIdx].image && (
                       <ImagePositionPicker
                         src={pageData.services[editingServiceIdx].image}
@@ -688,7 +692,8 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   <div className="portfolio-upload">
                     {pageData.services[editingServiceIdx].portfolioImages.map((img: any, pIdx: number) => (
                       <div key={img.id} className="portfolio-item">
-                        {img.image && <img src={img.image} alt={`Portfolio ${pIdx}`} />}
+                        {img.image && <img src={img.image} alt={`Portfolio ${pIdx}`} style={{ objectPosition: img.position || '50% 50%' }} />}
+                        <button onClick={() => setAdjustingServicePortfolioIdx(pIdx)} className="portfolio-adjust" title="Ajustar encuadre">🎯</button>
                         <button onClick={() => {
                           setPageData((prev: any) => {
                             const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx
@@ -701,9 +706,28 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                       </div>
                     ))}
                   </div>
+                  {adjustingServicePortfolioIdx !== null && pageData.services[editingServiceIdx].portfolioImages[adjustingServicePortfolioIdx] && (
+                    <div className="item-editor">
+                      <button onClick={() => setAdjustingServicePortfolioIdx(null)} className="back-button">← Cerrar ajuste de encuadre</button>
+                      <ImagePositionPicker
+                        aspectRatio="4 / 3"
+                        src={pageData.services[editingServiceIdx].portfolioImages[adjustingServicePortfolioIdx].image}
+                        position={pageData.services[editingServiceIdx].portfolioImages[adjustingServicePortfolioIdx].position}
+                        onChange={(pos) => {
+                          setPageData((prev: any) => {
+                            const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx
+                              ? { ...sv, portfolioImages: sv.portfolioImages.map((pv: any, pi: number) => pi === adjustingServicePortfolioIdx ? { ...pv, position: pos } : pv) }
+                              : sv)
+                            return { ...prev, services: s }
+                          })
+                          markAsChanged()
+                        }}
+                      />
+                    </div>
+                  )}
                   <label className="upload-label">
                     + Agregar foto al portfolio
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, portfolioImages: [...sv.portfolioImages, { id: Date.now(), image }] } : sv); return { ...prev, services: s } }) })} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, portfolioImages: [...sv.portfolioImages, { id: Date.now(), image }] } : sv); return { ...prev, services: s } }) }, 800)} />
                   </label>
                 </div>
               )}
@@ -719,7 +743,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                     <div key={course.id} className="item-card">
                       <h3>{course.name}</h3>
                       <div className="item-card-actions">
-                        <button onClick={() => setEditingCourseIdx(idx)} className="edit-button">Editar</button>
+                        <button onClick={() => { setEditingCourseIdx(idx); setAdjustingCoursePortfolioIdx(null) }} className="edit-button">Editar</button>
                         <button onClick={() => {
                           if (confirm(`¿Eliminar "${course.name}"?`)) {
                             setPageData((prev: any) => ({ ...prev, courses: prev.courses.filter((_: any, i: number) => i !== idx) }))
@@ -739,7 +763,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                 </div>
               ) : (
                 <div className="item-editor">
-                  <button onClick={() => setEditingCourseIdx(null)} className="back-button">← Volver a Cursos</button>
+                  <button onClick={() => { setEditingCourseIdx(null); setAdjustingCoursePortfolioIdx(null) }} className="back-button">← Volver a Cursos</button>
                   <div className="form-group">
                     <label>Nombre</label>
                     <input type="text" value={pageData.courses[editingCourseIdx].name} onChange={(e) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, name: e.target.value } : cv); return { ...prev, courses: c } }); markAsChanged() }} />
@@ -754,7 +778,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <div className="form-group">
                     <label>Imagen del Curso (portada)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, image } : cv); return { ...prev, courses: c } }) })} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, image } : cv); return { ...prev, courses: c } }) }, 700)} />
                     {pageData.courses[editingCourseIdx].image && (
                       <ImagePositionPicker
                         src={pageData.courses[editingCourseIdx].image}
@@ -768,7 +792,8 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   <div className="portfolio-upload">
                     {pageData.courses[editingCourseIdx].portfolioImages.map((img: any, pIdx: number) => (
                       <div key={img.id} className="portfolio-item">
-                        {img.image && <img src={img.image} alt={`Portfolio ${pIdx}`} />}
+                        {img.image && <img src={img.image} alt={`Portfolio ${pIdx}`} style={{ objectPosition: img.position || '50% 50%' }} />}
+                        <button onClick={() => setAdjustingCoursePortfolioIdx(pIdx)} className="portfolio-adjust" title="Ajustar encuadre">🎯</button>
                         <button onClick={() => {
                           setPageData((prev: any) => {
                             const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx
@@ -781,9 +806,28 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                       </div>
                     ))}
                   </div>
+                  {adjustingCoursePortfolioIdx !== null && pageData.courses[editingCourseIdx].portfolioImages[adjustingCoursePortfolioIdx] && (
+                    <div className="item-editor">
+                      <button onClick={() => setAdjustingCoursePortfolioIdx(null)} className="back-button">← Cerrar ajuste de encuadre</button>
+                      <ImagePositionPicker
+                        aspectRatio="4 / 3"
+                        src={pageData.courses[editingCourseIdx].portfolioImages[adjustingCoursePortfolioIdx].image}
+                        position={pageData.courses[editingCourseIdx].portfolioImages[adjustingCoursePortfolioIdx].position}
+                        onChange={(pos) => {
+                          setPageData((prev: any) => {
+                            const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx
+                              ? { ...cv, portfolioImages: cv.portfolioImages.map((pv: any, pi: number) => pi === adjustingCoursePortfolioIdx ? { ...pv, position: pos } : pv) }
+                              : cv)
+                            return { ...prev, courses: c }
+                          })
+                          markAsChanged()
+                        }}
+                      />
+                    </div>
+                  )}
                   <label className="upload-label">
                     + Agregar foto al portfolio
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, portfolioImages: [...cv.portfolioImages, { id: Date.now(), image }] } : cv); return { ...prev, courses: c } }) })} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, portfolioImages: [...cv.portfolioImages, { id: Date.now(), image }] } : cv); return { ...prev, courses: c } }) }, 800)} />
                   </label>
                 </div>
               )}
@@ -817,7 +861,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
               )}
               <label className="upload-label">
                 + Agregar foto al portfolio
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => ({ ...prev, portfolio: [...prev.portfolio, { id: Date.now(), image }] })) })} />
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => ({ ...prev, portfolio: [...prev.portfolio, { id: Date.now(), image }] })) }, 800)} />
               </label>
             </div>
           )}
@@ -851,7 +895,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <div className="form-group">
                     <label>Foto (opcional)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (photo) => { setPageData((prev: any) => { const t = prev.testimonials.map((tv: any, i: number) => i === editingTestimonialIdx ? { ...tv, photo } : tv); return { ...prev, testimonials: t } }) })} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (photo) => { setPageData((prev: any) => { const t = prev.testimonials.map((tv: any, i: number) => i === editingTestimonialIdx ? { ...tv, photo } : tv); return { ...prev, testimonials: t } }) }, 250)} />
                     {pageData.testimonials[editingTestimonialIdx].photo && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                         <img src={pageData.testimonials[editingTestimonialIdx].photo} alt="Foto" className="preview-image" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} />
