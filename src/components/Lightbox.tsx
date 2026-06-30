@@ -20,7 +20,7 @@ const Lightbox = ({ src, onClose }: LightboxProps) => {
   return (
     <div className="lightbox-overlay" onClick={onClose}>
       <button className="lightbox-close" onClick={onClose}>✕</button>
-      <img src={src} alt="" className="lightbox-image" onClick={e => e.stopPropagation()} />
+      <img src={src} alt="" className="lightbox-image" decoding="async" onClick={e => e.stopPropagation()} />
     </div>
   )
 }

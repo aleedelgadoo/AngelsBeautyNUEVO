@@ -32,7 +32,7 @@ const CourseDetail = ({ courseId, onClose, pageData }: CourseDetailProps) => {
 
         <div className="course-detail-hero">
           {course.image ? (
-            <img src={course.image} alt={course.name} className="course-detail-image-real" />
+            <img src={course.image} alt={course.name} className="course-detail-image-real" decoding="async" />
           ) : (
             <div className={`course-detail-image-placeholder course-placeholder-${course.id}`}></div>
           )}

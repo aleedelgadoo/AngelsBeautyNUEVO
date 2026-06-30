@@ -251,7 +251,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
           canvas.width = width
           canvas.height = height
           canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-          canvas.toBlob((blob) => resolve(blob!), mimeType, 1)
+          canvas.toBlob((blob) => resolve(blob!), mimeType, 0.82)
         }
         img.src = e.target?.result as string
       }
@@ -259,26 +259,11 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     })
   }
 
-  const uploadDirect = async (file: File, callback: (url: string) => void) => {
-    setUploading(true)
-    try {
-      const ext = file.name.split('.').pop() || 'png'
-      const fileName = `${Date.now()}_${file.name.replace(/[^a-z0-9]/gi, '_')}.${ext}`
-      const url = await uploadImage(file, fileName)
-      callback(url)
-      markAsChanged()
-    } catch (err: any) {
-      alert('Error al subir: ' + (err?.message || JSON.stringify(err)))
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (url: string) => void, maxWidth = 1200) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
-    resizeToBlob(file).then(async (blob) => {
+    resizeToBlob(file, maxWidth).then(async (blob) => {
       try {
         const ext = file.type === 'image/png' ? 'png' : 'jpg'
         const fileName = `${Date.now()}_${file.name.replace(/[^a-z0-9]/gi, '_')}.${ext}`
@@ -749,7 +734,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
               <h2>Redes Sociales y Enlaces</h2>
               <div className="form-group">
                 <label>Logo de la Navbar</label>
-                <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDirect(f, (url) => setPageData((prev: any) => ({ ...prev, logo: url }))); e.target.value = '' }} />
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (url) => setPageData((prev: any) => ({ ...prev, logo: url })), 500)} />
                 {pageData.logo && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                     <img src={pageData.logo} alt="Logo" style={{ height: 50, objectFit: 'contain', background: '#f5f0e8', padding: '4px', borderRadius: '4px' }} />

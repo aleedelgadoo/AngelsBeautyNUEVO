@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import AboutMe from './components/AboutMe'
@@ -8,11 +8,12 @@ import Testimonials from './components/Testimonials'
 import FAQ from './components/FAQ'
 import Portfolio from './components/Portfolio'
 import Footer from './components/Footer'
-import ServiceDetail from './components/ServiceDetail'
-import CourseDetail from './components/CourseDetail'
-import AdminPanel from './components/AdminPanel'
-import { loadPageData } from './utils/storage'
+import { loadPageData, getCachedPageData } from './utils/storage'
 import './App.css'
+
+const ServiceDetail = lazy(() => import('./components/ServiceDetail'))
+const CourseDetail = lazy(() => import('./components/CourseDetail'))
+const AdminPanel = lazy(() => import('./components/AdminPanel'))
 
 type Page = 'home' | 'service' | 'course' | 'admin'
 
@@ -21,7 +22,10 @@ function App() {
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null)
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [pageData, setPageData] = useState<any>(null)
+  const [pageData, setPageData] = useState<any>(() => {
+    const cached = getCachedPageData()
+    return cached ? { social: { instagramLink: 'https://instagram.com' }, ...cached } : null
+  })
 
   const refreshData = () => {
     loadPageData().then((data) => {
@@ -88,18 +92,26 @@ function App() {
   }
 
   if (currentPage === 'admin' && isLoggedIn) {
-    return <AdminPanel onLogout={handleAdminLogout} onDataSaved={handleDataSaved} />
+    return (
+      <Suspense fallback={null}>
+        <AdminPanel onLogout={handleAdminLogout} onDataSaved={handleDataSaved} />
+      </Suspense>
+    )
   }
 
   if (currentPage === 'service' && selectedServiceId) {
     return (
-      <ServiceDetail serviceId={selectedServiceId} onClose={handleCloseDetail} pageData={pageData} />
+      <Suspense fallback={null}>
+        <ServiceDetail serviceId={selectedServiceId} onClose={handleCloseDetail} pageData={pageData} />
+      </Suspense>
     )
   }
 
   if (currentPage === 'course' && selectedCourseId) {
     return (
-      <CourseDetail courseId={selectedCourseId} onClose={handleCloseCourseDetail} pageData={pageData} />
+      <Suspense fallback={null}>
+        <CourseDetail courseId={selectedCourseId} onClose={handleCloseCourseDetail} pageData={pageData} />
+      </Suspense>
     )
   }
 

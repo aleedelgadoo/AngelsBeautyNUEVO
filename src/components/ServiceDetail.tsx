@@ -32,7 +32,7 @@ const ServiceDetail = ({ serviceId, onClose, pageData }: ServiceDetailProps) => 
 
         <div className="service-detail-hero">
           {service.image ? (
-            <img src={service.image} alt={service.name} className="service-detail-image-real" />
+            <img src={service.image} alt={service.name} className="service-detail-image-real" decoding="async" />
           ) : (
             <div className={`service-detail-image-placeholder service-placeholder-${service.id}`}></div>
           )}

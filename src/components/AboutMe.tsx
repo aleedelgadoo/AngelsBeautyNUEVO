@@ -18,7 +18,7 @@ const AboutMe = ({ pageData }: AboutMeProps) => {
       <div className="about-container">
         <div className="about-image">
           {image ? (
-            <img src={image} alt="Sobre mí" className="about-photo" />
+            <img src={image} alt="Sobre mí" className="about-photo" loading="lazy" decoding="async" />
           ) : (
             <div className="image-placeholder">
               <span>Foto de perfil</span>

@@ -60,7 +60,7 @@ const Testimonials = ({ pageData }: TestimonialsProps) => {
 
           <div className="testimonial-content">
             {(current as any).photo ? (
-              <img src={(current as any).photo} alt={current.name} className="testimonial-avatar-photo" />
+              <img src={(current as any).photo} alt={current.name} className="testimonial-avatar-photo" loading="lazy" decoding="async" />
             ) : (
               <div className="testimonial-avatar">{initial}</div>
             )}
