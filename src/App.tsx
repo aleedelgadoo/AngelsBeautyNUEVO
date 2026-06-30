@@ -45,6 +45,26 @@ function App() {
     }
   }, [pageData?.logo])
 
+  // Hint the browser to fetch the logo and hero image ahead of everything
+  // else on the page, since they're what the visitor sees first.
+  useEffect(() => {
+    const preload = (key: string, href?: string) => {
+      if (!href) return
+      let link = document.querySelector(`link[data-preload="${key}"]`) as HTMLLinkElement | null
+      if (!link) {
+        link = document.createElement('link')
+        link.rel = 'preload'
+        link.as = 'image'
+        link.setAttribute('fetchpriority', 'high')
+        link.setAttribute('data-preload', key)
+        document.head.appendChild(link)
+      }
+      link.href = href
+    }
+    preload('logo', pageData?.logo)
+    preload('hero', pageData?.hero?.image)
+  }, [pageData?.logo, pageData?.hero?.image])
+
   useEffect(() => {
     const handler = () => {
       if (currentPage === 'service') {

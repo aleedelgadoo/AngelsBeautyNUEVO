@@ -71,7 +71,7 @@ const Services = ({ onServiceClick, pageData }: ServicesProps) => {
                 >
                   <div className="service-image-wrapper">
                     {service.image ? (
-                      <img src={service.image} alt={service.name} className="service-image-uploaded" loading="lazy" decoding="async" style={{ objectPosition: service.imagePosition || '50% 50%' }} />
+                      <img src={service.image} alt={service.name} className="service-image-uploaded" decoding="async" fetchPriority="low" style={{ objectPosition: service.imagePosition || '50% 50%' }} />
                     ) : (
                       <div className={`service-image service-image-placeholder service-${service.id}`}></div>
                     )}

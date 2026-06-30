@@ -70,7 +70,7 @@ const Courses = ({ onCourseClick, pageData }: CoursesProps) => {
                 >
                   <div className="course-image-wrapper">
                     {course.image ? (
-                      <img src={course.image} alt={course.name} className="course-image-uploaded" loading="lazy" decoding="async" style={{ objectPosition: course.imagePosition || '50% 50%' }} />
+                      <img src={course.image} alt={course.name} className="course-image-uploaded" decoding="async" fetchPriority="low" style={{ objectPosition: course.imagePosition || '50% 50%' }} />
                     ) : (
                       <div className={`course-image course-image-placeholder course-${course.id}`}></div>
                     )}

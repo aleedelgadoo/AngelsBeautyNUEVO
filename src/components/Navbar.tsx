@@ -34,7 +34,7 @@ const Navbar = ({ pageData, onNavClick }: NavbarProps) => {
       <div className="navbar-container">
         <div className="navbar-logo">
           {pageData?.logo ? (
-            <img src={pageData.logo} alt="Logo" className="logo-image" decoding="async" />
+            <img src={pageData.logo} alt="Logo" className="logo-image" decoding="async" fetchPriority="high" />
           ) : (
             <span className="logo-text">AB</span>
           )}

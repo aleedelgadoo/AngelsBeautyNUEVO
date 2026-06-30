@@ -280,8 +280,6 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   const markAsChanged = () => setHasChanges(true)
 
   const [uploading, setUploading] = useState(false)
-  const [optimizing, setOptimizing] = useState(false)
-  const [optimizeProgress, setOptimizeProgress] = useState<{ done: number; total: number } | null>(null)
 
   // WebP compresses ~30% smaller than JPEG at equivalent visual quality and
   // supports transparency, so it replaces both JPEG and PNG output here.
@@ -333,79 +331,6 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
 
   const handleSave = () => {
     persistNow(pageData)
-  }
-
-  const optimizeExistingImages = async () => {
-    if (optimizing) return
-    const ok = confirm('Esto va a re-comprimir todas las fotos ya subidas para que la página cargue más rápido. Puede tardar algunos minutos según la cantidad de fotos. ¿Continuar?')
-    if (!ok) return
-
-    setOptimizing(true)
-    const working: PageData = JSON.parse(JSON.stringify(pageData))
-    const jobs: Array<{ url: string; maxWidth: number; apply: (newUrl: string) => void }> = []
-
-    // Cover photos also display large on the service/course detail page
-    // (~900px wide) and portfolio-style photos open full-screen in the
-    // lightbox (~88vw, up to ~1700px on a desktop monitor), so they need
-    // more headroom than their small grid-card size suggests.
-    if (working.hero.image) jobs.push({ url: working.hero.image, maxWidth: 1200, apply: (u) => { working.hero.image = u } })
-    if (working.about.image) jobs.push({ url: working.about.image, maxWidth: 500, apply: (u) => { working.about.image = u } })
-    if (working.logo) jobs.push({ url: working.logo, maxWidth: 500, apply: (u) => { working.logo = u } })
-    working.services.forEach((s) => {
-      if (s.image) jobs.push({ url: s.image, maxWidth: 1100, apply: (u) => { s.image = u } })
-      s.portfolioImages.forEach((p) => {
-        if (p.image) jobs.push({ url: p.image, maxWidth: 1600, apply: (u) => { p.image = u } })
-      })
-    })
-    working.courses.forEach((c) => {
-      if (c.image) jobs.push({ url: c.image, maxWidth: 1100, apply: (u) => { c.image = u } })
-      c.portfolioImages.forEach((p) => {
-        if (p.image) jobs.push({ url: p.image, maxWidth: 1600, apply: (u) => { p.image = u } })
-      })
-    })
-    working.portfolio.forEach((p) => {
-      if (p.image) jobs.push({ url: p.image, maxWidth: 1600, apply: (u) => { p.image = u } })
-    })
-    working.testimonials.forEach((t) => {
-      if (t.photo) jobs.push({ url: t.photo, maxWidth: 300, apply: (u) => { t.photo = u } })
-    })
-
-    if (jobs.length === 0) {
-      setOptimizing(false)
-      alert('No hay fotos para optimizar.')
-      return
-    }
-
-    setOptimizeProgress({ done: 0, total: jobs.length })
-    let failures = 0
-
-    for (let i = 0; i < jobs.length; i++) {
-      const job = jobs[i]
-      try {
-        const res = await fetch(job.url)
-        if (!res.ok) throw new Error('No se pudo descargar la imagen')
-        const blob = await res.blob()
-        const resized = await resizeToBlob(blob, job.maxWidth)
-        const fileName = `opt_${Date.now()}_${i}.${extensionFor(resized)}`
-        const newUrl = await uploadImage(resized, fileName)
-        job.apply(newUrl)
-      } catch (err) {
-        failures++
-        console.error('No se pudo optimizar', job.url, err)
-      }
-      setOptimizeProgress({ done: i + 1, total: jobs.length })
-    }
-
-    setPageData(working)
-    markAsChanged()
-    setOptimizing(false)
-    setOptimizeProgress(null)
-
-    if (failures > 0) {
-      alert(`Optimización terminada. ${jobs.length - failures} de ${jobs.length} fotos se optimizaron correctamente. ${failures} no se pudieron procesar (podés intentar de nuevo). Tocá "Guardar Ahora" para guardar los cambios.`)
-    } else {
-      alert(`¡Listo! Se optimizaron ${jobs.length} fotos. Tocá "Guardar Ahora" para guardar los cambios.`)
-    }
   }
 
   if (!isAuthenticated) {
@@ -461,11 +386,6 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
       <div className="admin-header">
         <h1>Panel de Control - Angels Beauty</h1>
         <div className="admin-header-actions">
-          <button onClick={optimizeExistingImages} className="optimize-button" disabled={optimizing}>
-            {optimizing
-              ? `Optimizando ${optimizeProgress ? `${optimizeProgress.done}/${optimizeProgress.total}` : '...'}`
-              : '🚀 Optimizar fotos existentes'}
-          </button>
           <button onClick={onLogout} className="logout-button">
             Cerrar Sesión
           </button>
