@@ -192,7 +192,7 @@
 
 .portfolio-image-item {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 2 / 3;
   background: linear-gradient(160deg, #A8C4D8 0%, #7A9CB8 100%) center/cover no-repeat;
   border-radius: 0;
   box-shadow: 0 4px 20px rgba(50, 35, 25, 0.14);

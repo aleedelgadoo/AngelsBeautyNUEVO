@@ -287,7 +287,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
   // supports transparency, so it replaces both JPEG and PNG output here.
   // Browsers that can't encode WebP fall back to PNG automatically via
   // canvas.toBlob, so we read the real blob.type rather than assuming.
-  const resizeToBlob = (file: Blob, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
+  const resizeToBlob = (file: Blob, maxWidth = 1200, quality = 0.85): Promise<Blob> => {
     return new Promise((resolve) => {
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -344,26 +344,30 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
     const working: PageData = JSON.parse(JSON.stringify(pageData))
     const jobs: Array<{ url: string; maxWidth: number; apply: (newUrl: string) => void }> = []
 
+    // Cover photos also display large on the service/course detail page
+    // (~900px wide) and portfolio-style photos open full-screen in the
+    // lightbox (~88vw, up to ~1700px on a desktop monitor), so they need
+    // more headroom than their small grid-card size suggests.
     if (working.hero.image) jobs.push({ url: working.hero.image, maxWidth: 1200, apply: (u) => { working.hero.image = u } })
-    if (working.about.image) jobs.push({ url: working.about.image, maxWidth: 400, apply: (u) => { working.about.image = u } })
+    if (working.about.image) jobs.push({ url: working.about.image, maxWidth: 500, apply: (u) => { working.about.image = u } })
     if (working.logo) jobs.push({ url: working.logo, maxWidth: 500, apply: (u) => { working.logo = u } })
     working.services.forEach((s) => {
-      if (s.image) jobs.push({ url: s.image, maxWidth: 700, apply: (u) => { s.image = u } })
+      if (s.image) jobs.push({ url: s.image, maxWidth: 1100, apply: (u) => { s.image = u } })
       s.portfolioImages.forEach((p) => {
-        if (p.image) jobs.push({ url: p.image, maxWidth: 800, apply: (u) => { p.image = u } })
+        if (p.image) jobs.push({ url: p.image, maxWidth: 1600, apply: (u) => { p.image = u } })
       })
     })
     working.courses.forEach((c) => {
-      if (c.image) jobs.push({ url: c.image, maxWidth: 700, apply: (u) => { c.image = u } })
+      if (c.image) jobs.push({ url: c.image, maxWidth: 1100, apply: (u) => { c.image = u } })
       c.portfolioImages.forEach((p) => {
-        if (p.image) jobs.push({ url: p.image, maxWidth: 800, apply: (u) => { p.image = u } })
+        if (p.image) jobs.push({ url: p.image, maxWidth: 1600, apply: (u) => { p.image = u } })
       })
     })
     working.portfolio.forEach((p) => {
-      if (p.image) jobs.push({ url: p.image, maxWidth: 800, apply: (u) => { p.image = u } })
+      if (p.image) jobs.push({ url: p.image, maxWidth: 1600, apply: (u) => { p.image = u } })
     })
     working.testimonials.forEach((t) => {
-      if (t.photo) jobs.push({ url: t.photo, maxWidth: 250, apply: (u) => { t.photo = u } })
+      if (t.photo) jobs.push({ url: t.photo, maxWidth: 300, apply: (u) => { t.photo = u } })
     })
 
     if (jobs.length === 0) {
@@ -577,7 +581,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
               </div>
               <div className="form-group">
                 <label>Imagen</label>
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev) => ({ ...prev, about: { ...prev.about, image } })) }, 400)} />
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev) => ({ ...prev, about: { ...prev.about, image } })) }, 500)} />
                 {pageData.about.image && <img src={pageData.about.image} alt="About" className="preview-image" />}
               </div>
             </div>
@@ -627,7 +631,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <div className="form-group">
                     <label>Imagen del Servicio (portada)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, image } : sv); return { ...prev, services: s } }) }, 700)} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, image } : sv); return { ...prev, services: s } }) }, 1100)} />
                     {pageData.services[editingServiceIdx].image && (
                       <CropThumbnail
                         src={pageData.services[editingServiceIdx].image}
@@ -720,7 +724,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <label className="upload-label">
                     + Agregar foto al portfolio
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, portfolioImages: [...sv.portfolioImages, { id: Date.now(), image }] } : sv); return { ...prev, services: s } }) }, 800)} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const s = prev.services.map((sv: any, i: number) => i === editingServiceIdx ? { ...sv, portfolioImages: [...sv.portfolioImages, { id: Date.now(), image }] } : sv); return { ...prev, services: s } }) }, 1600)} />
                   </label>
                 </div>
               )}
@@ -771,7 +775,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <div className="form-group">
                     <label>Imagen del Curso (portada)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, image } : cv); return { ...prev, courses: c } }) }, 700)} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, image } : cv); return { ...prev, courses: c } }) }, 1100)} />
                     {pageData.courses[editingCourseIdx].image && (
                       <CropThumbnail
                         src={pageData.courses[editingCourseIdx].image}
@@ -820,7 +824,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <label className="upload-label">
                     + Agregar foto al portfolio
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, portfolioImages: [...cv.portfolioImages, { id: Date.now(), image }] } : cv); return { ...prev, courses: c } }) }, 800)} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => { const c = prev.courses.map((cv: any, i: number) => i === editingCourseIdx ? { ...cv, portfolioImages: [...cv.portfolioImages, { id: Date.now(), image }] } : cv); return { ...prev, courses: c } }) }, 1600)} />
                   </label>
                 </div>
               )}
@@ -849,7 +853,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
               </div>
               <label className="upload-label">
                 + Agregar foto al portfolio
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => ({ ...prev, portfolio: [...prev.portfolio, { id: Date.now(), image }] })) }, 800)} />
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (image) => { setPageData((prev: any) => ({ ...prev, portfolio: [...prev.portfolio, { id: Date.now(), image }] })) }, 1600)} />
               </label>
             </div>
           )}
@@ -883,7 +887,7 @@ const AdminPanel = ({ onLogout, onDataSaved }: AdminPanelProps) => {
                   </div>
                   <div className="form-group">
                     <label>Foto (opcional)</label>
-                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (photo) => { setPageData((prev: any) => { const t = prev.testimonials.map((tv: any, i: number) => i === editingTestimonialIdx ? { ...tv, photo } : tv); return { ...prev, testimonials: t } }) }, 250)} />
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (photo) => { setPageData((prev: any) => { const t = prev.testimonials.map((tv: any, i: number) => i === editingTestimonialIdx ? { ...tv, photo } : tv); return { ...prev, testimonials: t } }) }, 300)} />
                     {pageData.testimonials[editingTestimonialIdx].photo && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                         <img src={pageData.testimonials[editingTestimonialIdx].photo} alt="Foto" className="preview-image" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} />
